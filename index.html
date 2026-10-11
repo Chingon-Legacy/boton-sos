@@ -64,6 +64,9 @@
   .donatebtn:active { transform:scale(.98); }
   .builtby { font-size:13px; color:var(--muted); margin:-12px 0 20px; }
   .ver { font-size:11px; color:#9ca3af; text-align:center; margin:10px 0 0; }
+  .only-android { display:none !important; }
+  body.is-android .only-android { display:revert !important; }
+  body.is-android .only-ios { display:none !important; }
 </style>
 </head>
 <body>
@@ -113,10 +116,12 @@
 
   <div class="card">
     <h2 data-i18n="installTitle">3. Ponlo en tu pantalla principal</h2>
-    <p data-i18n="installNote"><b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.</p>
+    <p class="only-ios" data-i18n="installNote"><b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.</p>
+    <p class="only-android" data-i18n="installNoteAndroid"><b>Importante:</b> abre esta página en Samsung Internet o Chrome — la vista previa del chat no puede abrir tu app de mensajes.</p>
     <ol class="steps">
-      <li data-i18n="step1"><b>iPhone:</b> toca Compartir → "Agregar a pantalla de inicio".</li>
-      <li data-i18n="step2"><b>Android:</b> toca el menú ⋮ → "Agregar a pantalla principal".</li>
+      <li class="only-ios" data-i18n="step1"><b>iPhone:</b> toca Compartir → "Agregar a pantalla de inicio".</li>
+      <li class="only-android" data-i18n="step2si"><b>Samsung Internet:</b> toca el menú ☰ → "Añadir página a" → "Pantalla de inicio".</li>
+      <li class="only-android" data-i18n="step2chr"><b>Chrome:</b> toca el menú ⋮ → "Añadir a pantalla de inicio".</li>
       <li data-i18n="step3"><b>Pruébalo una vez</b> con un familiar para confirmar que el mensaje llega.</li>
     </ol>
   </div>
@@ -124,7 +129,7 @@
   <footer>
     <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
     <p data-i18n="legal">El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.</p>
-    <p class="ver">v10 · Botón SOS · Chingón Legacy</p>
+    <p class="ver">v11 · Botón SOS · Chingón Legacy</p>
   </footer>
 </div>
 
@@ -153,7 +158,8 @@
       msgTitle:"2. Mensaje que se enviará", msgDesc:"Así se verá el texto. Incluye tu ubicación automáticamente.",
       installTitle:"3. Ponlo en tu pantalla principal",
       step1:'<b>iPhone:</b> toca Compartir → "Agregar a pantalla de inicio".',
-      step2:'<b>Android:</b> toca el menú ⋮ → "Agregar a pantalla principal".',
+      step2si:'<b>Samsung Internet:</b> toca el menú ☰ → "Añadir página a" → "Pantalla de inicio".',
+      step2chr:'<b>Chrome:</b> toca el menú ⋮ → "Añadir a pantalla de inicio".',
       step3:"<b>Pruébalo una vez</b> con un familiar para confirmar que el mensaje llega.",
       privacy:"<b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.",
       legal:"El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.",
@@ -169,6 +175,7 @@
       copyMsg:"Copiar texto",
       smsBlocked:"¿No se abrió Mensajes? Abre esta página en Safari o Chrome (la vista previa del chat no puede abrir otras apps) y agrégala a tu pantalla principal. O usa «Copiar texto» abajo.",
       installNote:"<b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
+      installNoteAndroid:"<b>Importante:</b> abre esta página en Samsung Internet o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
       pickFromPhone:"Elegir de mis contactos",
       warnTitle:"Tus datos no se pueden guardar en este navegador",
       warnBody:"Usa el modo normal (no privado) de Safari, o revisa Ajustes → Safari → 'Bloquear todas las cookies' (debe estar apagado). Sin esto, tus contactos se borrarán al cerrar la página.",
@@ -192,7 +199,8 @@
       msgTitle:"2. Message that will be sent", msgDesc:"This is what the text will look like. Your location is added automatically.",
       installTitle:"3. Add it to your home screen",
       step1:'<b>iPhone:</b> tap Share → "Add to Home Screen".',
-      step2:'<b>Android:</b> tap the ⋮ menu → "Add to Home screen".',
+      step2si:'<b>Samsung Internet:</b> tap the ☰ menu → "Add page to" → "Home screen".',
+      step2chr:'<b>Chrome:</b> tap the ⋮ menu → "Add to Home screen".',
       step3:"<b>Test it once</b> with a family member to confirm the message arrives.",
       privacy:"<b>Privacy:</b> your contacts and name live only on this phone. Chingón Legacy never receives or stores this information.",
       legal:"The content of this page is not legal advice. If you have questions about your rights, consult an immigration attorney.",
@@ -208,6 +216,7 @@
       copyMsg:"Copy text",
       smsBlocked:"Messages didn't open? Open this page in Safari or Chrome (the chat preview can't open other apps) and add it to your home screen. Or use 'Copy text' below.",
       installNote:"<b>Important:</b> open this page in Safari or Chrome — the chat preview can't open your messaging app.",
+      installNoteAndroid:"<b>Important:</b> open this page in Samsung Internet or Chrome — the chat preview can't open your messaging app.",
       pickFromPhone:"Choose from my contacts",
       warnTitle:"Your data can't be saved in this browser",
       warnBody:"Use Safari's normal (not private) browsing, or check Settings → Safari → 'Block All Cookies' (must be off). Otherwise your contacts will be erased when you close the page.",
@@ -429,6 +438,9 @@
       sendSMS(buildMessage(loc || t('noloc')));
     });
   }
+
+  // Platform-specific install guidance: Samsung users get Samsung Internet / Chrome steps, iPhone users get Safari steps.
+  if (/Android/.test(navigator.userAgent)) document.body.classList.add('is-android');
 
   applyLang();
   if (!storageOK){ document.getElementById('storageWarn').style.display='block'; }
