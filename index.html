@@ -87,7 +87,7 @@
     <div class="sos-hint" data-i18n="hint">Esto <b>no</b> llama al 911. Envía un mensaje de texto a <b>tus</b> contactos.</div>
     <div id="status"></div>
     <button class="btn btn-ghost btn-block" id="copyBtn" style="display:none" data-i18n="copyMsg">Copiar texto</button>
-    <p id="bcastHint" class="savenote" style="display:none" data-i18n="broadcastHint">Presiona ENVIAR en Mensajes, vuelve aquí y toca «Siguiente contacto».</p>
+    <p id="bcastHint" class="savenote" style="display:none" data-i18n="broadcastHint">Presiona ENVIAR en Mensajes y vuelve aquí — el siguiente mensaje se abre solo.</p>
     <button class="btn btn-red btn-block" id="nextBtn" style="display:none">Siguiente contacto →</button>
   </div>
 
@@ -124,7 +124,7 @@
   <footer>
     <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
     <p data-i18n="legal">El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.</p>
-    <p class="ver">v9 · Botón SOS · Chingón Legacy</p>
+    <p class="ver">v10 · Botón SOS · Chingón Legacy</p>
   </footer>
 </div>
 
@@ -179,7 +179,7 @@
       sendingTo:"Abriendo mensaje {i} de {n} para {name}…",
       nextContact:"Siguiente contacto →",
       allSent:"✓ Alertas enviadas a {n} contactos.",
-      broadcastHint:"Presiona ENVIAR en Mensajes, vuelve aquí y toca «Siguiente contacto»."
+      broadcastHint:"Presiona ENVIAR en Mensajes y vuelve aquí — el siguiente mensaje se abre solo."
     },
     en: {
       tagline:"Community alert button", title:"SOS Button",
@@ -218,7 +218,7 @@
       sendingTo:"Opening message {i} of {n} for {name}…",
       nextContact:"Next contact →",
       allSent:"✓ Alerts sent to {n} contacts.",
-      broadcastHint:"Press SEND in Messages, come back here and tap 'Next contact'."
+      broadcastHint:"Press SEND in Messages and come back here — the next message opens by itself."
     }
   };
 
@@ -318,7 +318,7 @@
   }
 
   var lastMessage='';
-  var bcastQueue=[], bcastIdx=0, bcastActive=false;
+  var bcastQueue=[], bcastIdx=0, bcastActive=false, bcastGen=0;
   function openSms(phone, message){
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     var sep = isIOS ? '&' : '?';
@@ -343,12 +343,27 @@
       nb.style.display='none'; hint.style.display='none'; bcastActive=false;
     }
   }
-  document.getElementById('nextBtn').onclick=function(){
+  function advanceBcast(){
     if (!bcastActive) return;
+    bcastGen++;
     bcastIdx++;
     if (bcastIdx < bcastQueue.length) openSms(bcastQueue[bcastIdx].phone, lastMessage);
     showBcast();
-  };
+  }
+  document.getElementById('nextBtn').onclick=advanceBcast;
+  // Auto-advance: when the user comes back to this page after sending a message,
+  // pop the next one automatically so they just keep pressing Send. The manual
+  // button stays as backup in case the browser blocks the automatic handoff.
+  // bcastGen guards against double-advancing if a manual tap and the timer race.
+  document.addEventListener('visibilitychange', function(){
+    if (document.visibilityState !== 'visible' || !bcastActive) return;
+    var gen=bcastGen;
+    setTimeout(function(){
+      if (gen !== bcastGen || !bcastActive) return;
+      if (document.visibilityState !== 'visible') return;
+      advanceBcast();
+    }, 800);
+  });
   function sendSMS(message){
     var people = getContacts().map(function(c){ return {name:(c.name||'').trim(), phone:(c.phone||'').replace(/[^\d+]/g,'')}; }).filter(function(x){ return x.phone; });
     var nb=document.getElementById('nextBtn'), hint=document.getElementById('bcastHint');
@@ -360,7 +375,7 @@
       openSms(people[0].phone, message);
       setStatus('');
     } else {
-      bcastQueue=people; bcastIdx=0; bcastActive=true;
+      bcastQueue=people; bcastIdx=0; bcastActive=true; bcastGen++;
       openSms(bcastQueue[0].phone, message);
       showBcast();
     }
