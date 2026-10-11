@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#b91c1c">
-<title>Botón SOS — Chingón Legacy (borrador)</title>
+<title>Botón SOS — Chingón Legacy</title>
 <style>
   :root { --red:#b91c1c; --red-dark:#7f1d1d; --ink:#1f2937; --muted:#6b7280; --bg:#fafafa; --card:#ffffff; --green:#166534; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -46,7 +46,6 @@
   ol.steps { margin:8px 0 0; padding-left:20px; font-size:13.5px; color:var(--muted); line-height:1.7; }
   ol.steps b { color:var(--ink); }
   footer { margin-top:24px; font-size:12px; color:var(--muted); line-height:1.6; border-top:1px solid #e5e7eb; padding-top:14px; }
-  .draft-badge { display:inline-block; background:#fef3c7; color:#92400e; font-weight:800; font-size:11px; padding:3px 10px; border-radius:999px; letter-spacing:.5px; }
   #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#1f2937; color:#fff; font-size:14px; font-weight:600; padding:12px 18px; border-radius:12px; opacity:0; pointer-events:none; transition:all .25s; z-index:50; max-width:90vw; text-align:center; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
   .contact { flex-wrap:wrap; }
@@ -61,20 +60,26 @@
   .savepill { font-size:11px; font-weight:700; color:var(--green); background:#dcfce7; border-radius:999px; padding:3px 10px; margin-left:8px; opacity:0; transition:opacity .3s; vertical-align:middle; white-space:nowrap; }
   .savepill.show { opacity:1; }
   .savenote { font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
+  .donatebtn { display:block; text-align:center; background:#FFC439; color:#1f2937; font-weight:800; font-size:16px; padding:13px; border-radius:12px; text-decoration:none; margin:8px 0 4px; box-shadow:0 2px 8px rgba(0,0,0,.12); }
+  .donatebtn:active { transform:scale(.98); }
+  .builtby { font-size:13px; color:var(--muted); margin:-12px 0 20px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="brand">Chingón Legacy <span class="draft-badge" data-i18n="draft">BORRADOR</span><small data-i18n="tagline">Botón de alerta para la comunidad</small></div>
+    <div class="brand">Chingón Legacy<small data-i18n="tagline">Botón de alerta para la comunidad</small></div>
     <div class="langtoggle" role="group" aria-label="Language / Idioma">
       <button id="langEs" class="active">ES</button><button id="langEn">EN</button>
     </div>
   </header>
 
+  <a class="donatebtn" href="https://www.paypal.com/donate?hosted_button_id=E7Y3X9D6Y6SK6" target="_blank" rel="noopener" data-i18n="donateBtn">❤ Donar a Chingón Legacy</a>
+
   <div id="storageWarn" class="warn" style="display:none"><b data-i18n="warnTitle">Tus datos no se pueden guardar en este navegador</b><span data-i18n="warnBody"></span></div>
   <h1 data-i18n="title">Botón SOS</h1>
   <p class="sub" data-i18n="subtitle">Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.</p>
+  <p class="builtby" data-i18n="builtBy">Hecho con ❤ por <b>Chingón Legacy</b> para nuestra comunidad.</p>
 
   <div class="sos-zone">
     <button id="sosBtn" aria-label="SOS"><span class="fill" id="fill"></span>SOS<span class="holdlabel" data-i18n="hold">MANTÉN 3 SEG</span></button>
@@ -134,7 +139,7 @@
 
   var STR = {
     es: {
-      draft:"BORRADOR", tagline:"Botón de alerta para la comunidad", title:"Botón SOS",
+      tagline:"Botón de alerta para la comunidad", title:"Botón SOS",
       subtitle:"Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.",
       hold:"MANTÉN 3 SEG", hint:"Esto <b>no</b> llama al 911. Envía un mensaje de texto a <b>tus</b> contactos.",
       setupTitle:"1. Configura tus contactos",
@@ -147,7 +152,7 @@
       step2:'<b>Android:</b> toca el menú ⋮ → "Agregar a pantalla principal".',
       step3:"<b>Pruébalo una vez</b> con un familiar para confirmar que el mensaje llega.",
       privacy:"<b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.",
-      legal:"Borrador con fines de revisión — el texto del mensaje debe ser revisado por un abogado de inmigración antes de distribuirse. Esto no es asesoría legal.",
+      legal:"El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.",
       sending:"Localizando y abriendo tus mensajes…", opened:"Se abrió tu app de mensajes — presiona ENVIAR para alertar a tus contactos.",
       noloc:"(ubicación no disponible)", noname:"Alguien",
       sms:"SOS de {name}: Creo que fui detenido/a por agentes de inmigración. Mi ubicación aprox: {loc}. Hora: {time}. Por favor avisa a mi familia y a mi abogado. No voy a firmar nada y ejerceré mi derecho a guardar silencio.",
@@ -164,10 +169,12 @@
       warnTitle:"Tus datos no se pueden guardar en este navegador",
       warnBody:"Usa el modo normal (no privado) de Safari, o revisa Ajustes → Safari → 'Bloquear todas las cookies' (debe estar apagado). Sin esto, tus contactos se borrarán al cerrar la página.",
       savedPill:"✓ Guardado en este teléfono",
-      saveNote:"Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado."
+      saveNote:"Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado.",
+      donateBtn:"❤ Donar a Chingón Legacy",
+      builtBy:"Hecho con ❤ por <b>Chingón Legacy</b> para nuestra comunidad."
     },
     en: {
-      draft:"DRAFT", tagline:"Community alert button", title:"SOS Button",
+      tagline:"Community alert button", title:"SOS Button",
       subtitle:"If you believe you have been detained by immigration agents, press and hold the button. It will text your trusted contacts with your location.",
       hold:"HOLD 3 SEC", hint:"This does <b>not</b> call 911. It texts <b>your</b> contacts.",
       setupTitle:"1. Set up your contacts",
@@ -180,7 +187,7 @@
       step2:'<b>Android:</b> tap the ⋮ menu → "Add to Home screen".',
       step3:"<b>Test it once</b> with a family member to confirm the message arrives.",
       privacy:"<b>Privacy:</b> your contacts and name live only on this phone. Chingón Legacy never receives or stores this information.",
-      legal:"Draft for review — the message text should be reviewed by an immigration attorney before distribution. This is not legal advice.",
+      legal:"The content of this page is not legal advice. If you have questions about your rights, consult an immigration attorney.",
       sending:"Getting location and opening your messages…", opened:"Your messaging app opened — press SEND to alert your contacts.",
       noloc:"(location unavailable)", noname:"Someone",
       sms:"SOS from {name}: I believe I have been detained by immigration agents. My approx location: {loc}. Time: {time}. Please notify my family and my attorney. I will not sign anything and I am exercising my right to remain silent.",
@@ -197,7 +204,9 @@
       warnTitle:"Your data can't be saved in this browser",
       warnBody:"Use Safari's normal (not private) browsing, or check Settings → Safari → 'Block All Cookies' (must be off). Otherwise your contacts will be erased when you close the page.",
       savedPill:"✓ Saved on this phone",
-      saveNote:"Your data saves automatically on this phone, in this browser. Avoid private browsing."
+      saveNote:"Your data saves automatically on this phone, in this browser. Avoid private browsing.",
+      donateBtn:"❤ Donate to Chingón Legacy",
+      builtBy:"Made with ❤ by <b>Chingón Legacy</b> for our community."
     }
   };
 
