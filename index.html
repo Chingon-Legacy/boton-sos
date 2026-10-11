@@ -86,6 +86,8 @@
     <div class="sos-hint" data-i18n="hint">Esto <b>no</b> llama al 911. Envía un mensaje de texto a <b>tus</b> contactos.</div>
     <div id="status"></div>
     <button class="btn btn-ghost btn-block" id="copyBtn" style="display:none" data-i18n="copyMsg">Copiar texto</button>
+    <p id="bcastHint" class="savenote" style="display:none" data-i18n="broadcastHint">Presiona ENVIAR en Mensajes, vuelve aquí y toca «Siguiente contacto».</p>
+    <button class="btn btn-red btn-block" id="nextBtn" style="display:none">Siguiente contacto →</button>
   </div>
 
   <div class="card">
@@ -171,7 +173,11 @@
       savedPill:"✓ Guardado en este teléfono",
       saveNote:"Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado.",
       donateBtn:"❤ Donar a Chingón Legacy",
-      builtBy:"Hecho con ❤ por <b>Chingón Legacy</b> para nuestra comunidad."
+      builtBy:"Hecho con ❤ por <b>Chingón Legacy</b> para nuestra comunidad.",
+      sendingTo:"Abriendo mensaje {i} de {n} para {name}…",
+      nextContact:"Siguiente contacto →",
+      allSent:"✓ Alertas enviadas a {n} contactos.",
+      broadcastHint:"Presiona ENVIAR en Mensajes, vuelve aquí y toca «Siguiente contacto»."
     },
     en: {
       tagline:"Community alert button", title:"SOS Button",
@@ -206,7 +212,11 @@
       savedPill:"✓ Saved on this phone",
       saveNote:"Your data saves automatically on this phone, in this browser. Avoid private browsing.",
       donateBtn:"❤ Donate to Chingón Legacy",
-      builtBy:"Made with ❤ by <b>Chingón Legacy</b> for our community."
+      builtBy:"Made with ❤ by <b>Chingón Legacy</b> for our community.",
+      sendingTo:"Opening message {i} of {n} for {name}…",
+      nextContact:"Next contact →",
+      allSent:"✓ Alerts sent to {n} contacts.",
+      broadcastHint:"Press SEND in Messages, come back here and tap 'Next contact'."
     }
   };
 
@@ -306,25 +316,56 @@
   }
 
   var lastMessage='';
-  function sendSMS(message){
-    var cs = getContacts().map(function(c){ return (c.phone||'').replace(/[^\d+]/g,''); }).filter(Boolean);
-    if (!cs.length){ setStatus(t('needContact')); return; }
-    lastMessage = message;
-    document.getElementById('copyBtn').style.display='block';
+  var bcastQueue=[], bcastIdx=0, bcastActive=false;
+  function openSms(phone, message){
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     var sep = isIOS ? '&' : '?';
-    var uri = 'sms:' + cs.join(',') + sep + 'body=' + encodeURIComponent(message);
-    // Anchor-click is the most compatible way to hand the message off to the SMS app
+    var uri = 'sms:' + phone + sep + 'body=' + encodeURIComponent(message);
+    // Anchor-click is the most compatible way to hand the message off to the SMS app.
+    // One recipient per link: iOS ignores every recipient after the first, so multiple
+    // contacts are sent one by one through the guided "next contact" flow below.
     var a = document.createElement('a');
     a.href = uri; a.style.display = 'none';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); }, 1000);
-    setStatus(t('opened'), 'ok');
     if (navigator.vibrate) navigator.vibrate([80,40,80]);
+  }
+  function showBcast(){
+    var nb=document.getElementById('nextBtn'), hint=document.getElementById('bcastHint');
+    if (bcastIdx < bcastQueue.length){
+      var person=bcastQueue[bcastIdx], label=person.name||person.phone;
+      setStatus(t('sendingTo').split('{i}').join(bcastIdx+1).split('{n}').join(bcastQueue.length).split('{name}').join(label), 'working');
+      nb.textContent=t('nextContact'); nb.style.display='block'; hint.style.display='block';
+    } else {
+      setStatus(t('allSent').split('{n}').join(bcastQueue.length), 'ok');
+      nb.style.display='none'; hint.style.display='none'; bcastActive=false;
+    }
+  }
+  document.getElementById('nextBtn').onclick=function(){
+    if (!bcastActive) return;
+    bcastIdx++;
+    if (bcastIdx < bcastQueue.length) openSms(bcastQueue[bcastIdx].phone, lastMessage);
+    showBcast();
+  };
+  function sendSMS(message){
+    var people = getContacts().map(function(c){ return {name:(c.name||'').trim(), phone:(c.phone||'').replace(/[^\d+]/g,'')}; }).filter(function(x){ return x.phone; });
+    var nb=document.getElementById('nextBtn'), hint=document.getElementById('bcastHint');
+    if (!people.length){ setStatus(t('needContact')); nb.style.display='none'; hint.style.display='none'; bcastActive=false; return; }
+    lastMessage = message;
+    document.getElementById('copyBtn').style.display='block';
+    if (people.length === 1){
+      bcastActive=false; nb.style.display='none'; hint.style.display='none';
+      openSms(people[0].phone, message);
+      setStatus(t('opened'), 'ok');
+    } else {
+      bcastQueue=people; bcastIdx=0; bcastActive=true;
+      openSms(bcastQueue[0].phone, message);
+      showBcast();
+    }
     // If we're still here after a few seconds, the SMS app never took over
     // (e.g. the page was opened inside a chat preview that blocks other apps)
     setTimeout(function(){
-      if (document.visibilityState === 'visible') setStatus(t('smsBlocked'), 'working');
+      if (document.visibilityState === 'visible' && !bcastActive) setStatus(t('smsBlocked'), 'working');
     }, 2500);
   }
 
