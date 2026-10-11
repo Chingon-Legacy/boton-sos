@@ -129,7 +129,7 @@
   <footer>
     <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
     <p data-i18n="legal">El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.</p>
-    <p class="ver">v11 · Botón SOS · Chingón Legacy</p>
+    <p class="ver">v12 · Botón SOS · Chingón Legacy</p>
   </footer>
 </div>
 
@@ -167,6 +167,7 @@
       noloc:"(ubicación no disponible)", noname:"Alguien",
       sms:"SOS de {name}: Creo que fui detenido/a por agentes de inmigración. Mi ubicación aprox: {loc}. Hora: {time}. Por favor avisa a mi familia y a mi abogado. No voy a firmar nada y ejerceré mi derecho a guardar silencio.",
       needContact:"Agrega al menos un contacto de confianza primero.",
+      badPhone:"El número de {name} parece incompleto, revísalo antes de enviar.",
       resetMsg:"Restablecer texto original",
       msgVars:"Se reemplaza solo: {name} = tu nombre · {loc} = tu ubicación · {time} = hora",
       contactAdded:"✓ Contacto agregado",
@@ -208,6 +209,7 @@
       noloc:"(location unavailable)", noname:"Someone",
       sms:"SOS from {name}: I believe I have been detained by immigration agents. My approx location: {loc}. Time: {time}. Please notify my family and my attorney. I will not sign anything and I am exercising my right to remain silent.",
       needContact:"Add at least one trusted contact first.",
+      badPhone:"The number for {name} looks incomplete, please check it before sending.",
       resetMsg:"Restore original text",
       msgVars:"Auto-replaced: {name} = your name · {loc} = your location · {time} = send time",
       contactAdded:"✓ Contact added",
@@ -328,7 +330,19 @@
 
   var lastMessage='';
   var bcastQueue=[], bcastIdx=0, bcastActive=false, bcastGen=0;
+  // Clean a phone number for the sms: URL: strip spaces, dashes, parentheses, etc.
+  // (they break the link and can blank out the message), keep a leading +.
+  function cleanPhone(p){
+    p=String(p==null?'':p).trim();
+    if(!p) return '';
+    var plus=p.charAt(0)==='+';
+    var digits=p.replace(/\D/g,'');
+    return (plus?'+':'')+digits;
+  }
+  function validPhone(p){ return cleanPhone(p).replace(/\D/g,'').length>=7; }
+
   function openSms(phone, message){
+    phone = cleanPhone(phone);
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     var sep = isIOS ? '&' : '?';
     var uri = 'sms:' + phone + sep + 'body=' + encodeURIComponent(message);
@@ -374,7 +388,10 @@
     }, 800);
   });
   function sendSMS(message){
-    var people = getContacts().map(function(c){ return {name:(c.name||'').trim(), phone:(c.phone||'').replace(/[^\d+]/g,'')}; }).filter(function(x){ return x.phone; });
+    var raw = getContacts().map(function(c){ return {name:(c.name||'').trim(), phone:cleanPhone(c.phone)}; }).filter(function(x){ return x.phone; });
+    var bad = raw.filter(function(x){ return !validPhone(x.phone); });
+    if (bad.length){ setStatus(t('badPhone').replace('{name}', bad[0].name||bad[0].phone)); bcastActive=false; return; }
+    var people = raw.filter(function(x){ return validPhone(x.phone); });
     var nb=document.getElementById('nextBtn'), hint=document.getElementById('bcastHint');
     if (!people.length){ setStatus(t('needContact')); nb.style.display='none'; hint.style.display='none'; bcastActive=false; return; }
     lastMessage = message;
