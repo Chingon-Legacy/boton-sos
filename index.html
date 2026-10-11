@@ -56,6 +56,11 @@
   textarea.msgedit { width:100%; min-height:150px; padding:12px; font-size:14px; line-height:1.6; border:1.5px solid #d1d5db; border-radius:10px; font-family:inherit; }
   textarea.msgedit:focus { outline:none; border-color:var(--red); }
   .mini-link { background:none; border:0; color:var(--red); font-size:13px; font-weight:700; cursor:pointer; padding:6px 0; }
+  .warn { background:#fef2f2; border:1.5px solid #fca5a5; color:#7f1d1d; border-radius:12px; padding:12px 14px; margin:0 0 16px; font-size:13.5px; line-height:1.55; }
+  .warn b { display:block; margin-bottom:2px; }
+  .savepill { font-size:11px; font-weight:700; color:var(--green); background:#dcfce7; border-radius:999px; padding:3px 10px; margin-left:8px; opacity:0; transition:opacity .3s; vertical-align:middle; white-space:nowrap; }
+  .savepill.show { opacity:1; }
+  .savenote { font-size:12px; color:var(--muted); margin:10px 0 0; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -67,6 +72,7 @@
     </div>
   </header>
 
+  <div id="storageWarn" class="warn" style="display:none"><b data-i18n="warnTitle">Tus datos no se pueden guardar en este navegador</b><span data-i18n="warnBody"></span></div>
   <h1 data-i18n="title">Botón SOS</h1>
   <p class="sub" data-i18n="subtitle">Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.</p>
 
@@ -78,13 +84,14 @@
   </div>
 
   <div class="card">
-    <h2 data-i18n="setupTitle">1. Configura tus contactos</h2>
+    <h2><span data-i18n="setupTitle">1. Configura tus contactos</span> <span id="savePill" class="savepill"></span></h2>
     <p data-i18n="setupDesc">Agrega hasta 5 personas de confianza (familia, abogado, amigo). Se guardan <b>solo en tu teléfono</b> — nunca se envían a ningún servidor.</p>
     <label for="yourName" data-i18n="yourName">Tu nombre</label>
     <input type="text" id="yourName" data-i18n-ph="yourNamePh" placeholder="Ej. María López" autocomplete="off">
     <label data-i18n="contacts">Contactos de confianza</label>
     <div id="contacts"></div>
     <button class="btn btn-ghost btn-block" id="addContact" data-i18n="addContact">+ Agregar contacto</button>
+    <p class="savenote" data-i18n="saveNote">Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado.</p>
   </div>
 
   <div class="card">
@@ -153,7 +160,11 @@
       copyMsg:"Copiar texto",
       smsBlocked:"¿No se abrió Mensajes? Abre esta página en Safari o Chrome (la vista previa del chat no puede abrir otras apps) y agrégala a tu pantalla principal. O usa «Copiar texto» abajo.",
       installNote:"<b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
-      pickFromPhone:"Elegir de mis contactos"
+      pickFromPhone:"Elegir de mis contactos",
+      warnTitle:"Tus datos no se pueden guardar en este navegador",
+      warnBody:"Usa el modo normal (no privado) de Safari, o revisa Ajustes → Safari → 'Bloquear todas las cookies' (debe estar apagado). Sin esto, tus contactos se borrarán al cerrar la página.",
+      savedPill:"✓ Guardado en este teléfono",
+      saveNote:"Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado."
     },
     en: {
       draft:"DRAFT", tagline:"Community alert button", title:"SOS Button",
@@ -182,7 +193,11 @@
       copyMsg:"Copy text",
       smsBlocked:"Messages didn't open? Open this page in Safari or Chrome (the chat preview can't open other apps) and add it to your home screen. Or use 'Copy text' below.",
       installNote:"<b>Important:</b> open this page in Safari or Chrome — the chat preview can't open your messaging app.",
-      pickFromPhone:"Choose from my contacts"
+      pickFromPhone:"Choose from my contacts",
+      warnTitle:"Your data can't be saved in this browser",
+      warnBody:"Use Safari's normal (not private) browsing, or check Settings → Safari → 'Block All Cookies' (must be off). Otherwise your contacts will be erased when you close the page.",
+      savedPill:"✓ Saved on this phone",
+      saveNote:"Your data saves automatically on this phone, in this browser. Avoid private browsing."
     }
   };
 
@@ -221,7 +236,7 @@
   }
   var nameInput = document.getElementById('yourName');
   nameInput.value = store.get(LS_NAME,'');
-  nameInput.addEventListener('input', function(){ store.set(LS_NAME, nameInput.value); renderPreview(); });
+  nameInput.addEventListener('input', function(){ store.set(LS_NAME, nameInput.value); renderPreview(); markSaved(); });
 
   function renderContacts(){
     var box = document.getElementById('contacts'); box.innerHTML='';
@@ -229,9 +244,9 @@
     cs.forEach(function(c, i){
       var row = document.createElement('div'); row.className='contact';
       var n = document.createElement('input'); n.type='text'; n.placeholder=t('namePh'); n.value=c.name||'';
-      n.addEventListener('input', function(){ cs[i].name=n.value; saveContacts(cs); renderPreview(); });
+      n.addEventListener('input', function(){ cs[i].name=n.value; saveContacts(cs); renderPreview(); markSaved(); });
       var p = document.createElement('input'); p.type='tel'; p.placeholder=t('phonePh'); p.value=c.phone||''; p.inputMode='tel';
-      p.addEventListener('input', function(){ cs[i].phone=p.value; saveContacts(cs); });
+      p.addEventListener('input', function(){ cs[i].phone=p.value; saveContacts(cs); markSaved(); });
       var rm = document.createElement('button'); rm.className='rm'; rm.textContent='×'; rm.setAttribute('aria-label','Remove');
       rm.onclick = function(){ cs.splice(i,1); saveContacts(cs); renderContacts(); };
       row.appendChild(n); row.appendChild(p);
@@ -247,7 +262,7 @@
     var cs = getContacts();
     if (cs.length >= 5){ return; }
     cs.push({name:'', phone:''}); saveContacts(cs); renderContacts();
-    toast(t('contactAdded'));
+    toast(t('contactAdded')); markSaved();
     var box=document.getElementById('contacts'), row=box.lastChild;
     if (row){ row.scrollIntoView({block:'nearest', behavior:'smooth'}); var inp=row.querySelector('input'); if(inp) inp.focus({preventScroll:true}); }
   };
@@ -262,12 +277,24 @@
   function renderPreview(){ document.getElementById('preview').textContent = buildMessage('https://maps.google.com/?q=39.7,-86.1'); }
   var msgEdit=document.getElementById('msgEdit');
   function loadTemplate(){ msgEdit.value = getTemplate(); renderPreview(); }
-  msgEdit.addEventListener('input', function(){ store.set(LS_MSG+lang, msgEdit.value); renderPreview(); });
+  msgEdit.addEventListener('input', function(){ store.set(LS_MSG+lang, msgEdit.value); renderPreview(); markSaved(); });
   document.getElementById('resetMsg').onclick = function(){ store.del(LS_MSG+lang); loadTemplate(); toast(t('resetMsg')); };
 
   function setStatus(msg, cls){ var s=document.getElementById('status'); s.textContent=msg; s.className=cls||''; }
   var toastTimer=null;
   function toast(msg){ var el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); if(toastTimer) clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.remove('show'); },2200); }
+
+  // Storage health check: private browsing or "Block All Cookies" silently discards saved data.
+  // Warn loudly instead of letting the user believe their contacts were saved.
+  var storageOK = (function(){ try { localStorage.setItem('__cl_test','1'); localStorage.removeItem('__cl_test'); return true; } catch(e){ return false; } })();
+  var savePillT=null;
+  function markSaved(){
+    if (!storageOK) return;
+    var el=document.getElementById('savePill');
+    el.textContent=t('savedPill'); el.classList.add('show');
+    if(savePillT) clearTimeout(savePillT);
+    savePillT=setTimeout(function(){ el.classList.remove('show'); },1800);
+  }
 
   var lastMessage='';
   function sendSMS(message){
@@ -337,6 +364,7 @@
   }
 
   applyLang();
+  if (!storageOK){ document.getElementById('storageWarn').style.display='block'; }
 })();
 </script>
 </body>
