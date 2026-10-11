@@ -129,7 +129,7 @@
   <footer>
     <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
     <p data-i18n="legal">El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.</p>
-    <p class="ver">v12 · Botón SOS · Chingón Legacy</p>
+    <p class="ver">v13 · Botón SOS · Chingón Legacy</p>
   </footer>
 </div>
 
@@ -174,6 +174,7 @@
       copied:"✓ Texto copiado — pégalo en tus mensajes",
       copyFail:"No se pudo copiar automáticamente",
       copyMsg:"Copiar texto",
+      blankMsg:"El texto del mensaje está vacío — usa «Copiar texto» abajo y pégalo en tus mensajes, o toca «Restablecer texto original».",
       smsBlocked:"¿No se abrió Mensajes? Abre esta página en Safari o Chrome (la vista previa del chat no puede abrir otras apps) y agrégala a tu pantalla principal. O usa «Copiar texto» abajo.",
       installNote:"<b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
       installNoteAndroid:"<b>Importante:</b> abre esta página en Samsung Internet o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
@@ -216,6 +217,7 @@
       copied:"✓ Text copied — paste it into your messages",
       copyFail:"Couldn't copy automatically",
       copyMsg:"Copy text",
+      blankMsg:"The message text is empty — use 'Copy text' below and paste it into your messages, or tap 'Restore original text'.",
       smsBlocked:"Messages didn't open? Open this page in Safari or Chrome (the chat preview can't open other apps) and add it to your home screen. Or use 'Copy text' below.",
       installNote:"<b>Important:</b> open this page in Safari or Chrome — the chat preview can't open your messaging app.",
       installNoteAndroid:"<b>Important:</b> open this page in Samsung Internet or Chrome — the chat preview can't open your messaging app.",
@@ -299,7 +301,14 @@
     if (row){ row.scrollIntoView({block:'nearest', behavior:'smooth'}); var inp=row.querySelector('input'); if(inp) inp.focus({preventScroll:true}); }
   };
 
-  function getTemplate(){ return store.get(LS_MSG+lang, null) || STR[lang].sms; }
+  function getTemplate(){
+    var v = store.get(LS_MSG+lang, null);
+    // A template that is empty or only whitespace would open the SMS app with a
+    // blank message — treat it as unset (and clear it) so the default is used.
+    if (v != null && String(v).trim() !== '') return v;
+    if (v != null) store.del(LS_MSG+lang);
+    return STR[lang].sms;
+  }
   function buildMessage(locStr){
     var name = (store.get(LS_NAME,'')).trim() || t('noname');
     var now = new Date();
@@ -343,6 +352,13 @@
 
   function openSms(phone, message){
     phone = cleanPhone(phone);
+    message = String(message == null ? '' : message);
+    if (!message.trim()){
+      // Never hand a blank message to the SMS app — surface the copy fallback instead.
+      document.getElementById('copyBtn').style.display='block';
+      setStatus(t('blankMsg'), 'working');
+      return;
+    }
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     var sep = isIOS ? '&' : '?';
     var uri = 'sms:' + phone + sep + 'body=' + encodeURIComponent(message);
