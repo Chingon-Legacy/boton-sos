@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#b91c1c">
+<title>Botón SOS — Chingón Legacy (borrador)</title>
+<style>
+  :root { --red:#b91c1c; --red-dark:#7f1d1d; --ink:#1f2937; --muted:#6b7280; --bg:#fafafa; --card:#ffffff; --green:#166534; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:0 16px 48px; }
+  .wrap { max-width:520px; margin:0 auto; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:16px 0 4px; }
+  header .brand { font-weight:800; font-size:15px; }
+  header .brand small { display:block; font-weight:400; color:var(--muted); font-size:12px; }
+  .langtoggle { display:flex; border:2px solid #e5e7eb; border-radius:999px; overflow:hidden; }
+  .langtoggle button { border:0; background:#fff; padding:8px 14px; font-weight:700; font-size:14px; cursor:pointer; color:var(--muted); }
+  .langtoggle button.active { background:var(--ink); color:#fff; }
+  h1 { font-size:24px; margin:10px 0 4px; }
+  .sub { color:var(--muted); font-size:14px; margin:0 0 20px; line-height:1.45; }
+  .sos-zone { text-align:center; margin:8px 0 24px; }
+  #sosBtn { position:relative; width:220px; height:220px; border-radius:50%; border:0; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%, #ef4444, var(--red) 70%);
+    color:#fff; font-size:34px; font-weight:900; letter-spacing:1px;
+    box-shadow:0 10px 30px rgba(185,28,28,.35), inset 0 -6px 0 rgba(0,0,0,.18); user-select:none; -webkit-user-select:none; touch-action:none; }
+  #sosBtn:active { transform:scale(.97); }
+  #sosBtn .fill { position:absolute; inset:0; border-radius:50%; background:rgba(255,255,255,.28);
+    transform:scale(0); pointer-events:none; }
+  #sosBtn .holdlabel { position:absolute; left:0; right:0; bottom:34px; font-size:12px; font-weight:700; opacity:.9; letter-spacing:.5px; }
+  .sos-hint { font-size:13px; color:var(--muted); margin-top:12px; line-height:1.5; }
+  #status { min-height:24px; font-weight:700; margin-top:10px; font-size:15px; }
+  #status.ok { color:var(--green); } #status.working { color:#92400e; }
+  .card { background:var(--card); border:1px solid #e5e7eb; border-radius:14px; padding:16px; margin:0 0 16px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .card h2 { font-size:16px; margin:0 0 10px; }
+  .card p { font-size:13.5px; color:var(--muted); line-height:1.55; margin:0 0 10px; }
+  label { display:block; font-size:13px; font-weight:700; margin:10px 0 4px; }
+  input[type=text], input[type=tel] { width:100%; padding:11px 12px; font-size:16px; border:1.5px solid #d1d5db; border-radius:10px; }
+  input:focus { outline:none; border-color:var(--red); }
+  .contact { display:flex; gap:8px; margin-bottom:8px; }
+  .contact input:first-child { flex:1.1; } .contact input:last-of-type { flex:1; }
+  .contact .rm { border:0; background:#fee2e2; color:var(--red-dark); border-radius:10px; font-size:18px; width:44px; cursor:pointer; flex:none; }
+  .btn { display:inline-block; border:0; border-radius:10px; padding:12px 18px; font-size:15px; font-weight:800; cursor:pointer; }
+  .btn-red { background:var(--red); color:#fff; } .btn-ghost { background:#f3f4f6; color:var(--ink); }
+  .btn-block { width:100%; margin-top:6px; }
+  .preview { background:#f9fafb; border:1px dashed #d1d5db; border-radius:10px; padding:12px; font-size:13px; line-height:1.6; white-space:pre-wrap; }
+  ol.steps { margin:8px 0 0; padding-left:20px; font-size:13.5px; color:var(--muted); line-height:1.7; }
+  ol.steps b { color:var(--ink); }
+  footer { margin-top:24px; font-size:12px; color:var(--muted); line-height:1.6; border-top:1px solid #e5e7eb; padding-top:14px; }
+  .draft-badge { display:inline-block; background:#fef3c7; color:#92400e; font-weight:800; font-size:11px; padding:3px 10px; border-radius:999px; letter-spacing:.5px; }
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#1f2937; color:#fff; font-size:14px; font-weight:600; padding:12px 18px; border-radius:12px; opacity:0; pointer-events:none; transition:all .25s; z-index:50; max-width:90vw; text-align:center; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .contact { flex-wrap:wrap; }
+  .contact input[type=text] { flex:1 1 calc(100% - 104px); min-width:0; }
+  .contact input[type=tel] { flex:1 1 100%; }
+  .contact .pk { border:0; background:#e0e7ff; border-radius:10px; font-size:18px; width:44px; cursor:pointer; flex:none; }
+  textarea.msgedit { width:100%; min-height:150px; padding:12px; font-size:14px; line-height:1.6; border:1.5px solid #d1d5db; border-radius:10px; font-family:inherit; }
+  textarea.msgedit:focus { outline:none; border-color:var(--red); }
+  .mini-link { background:none; border:0; color:var(--red); font-size:13px; font-weight:700; cursor:pointer; padding:6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Chingón Legacy <span class="draft-badge" data-i18n="draft">BORRADOR</span><small data-i18n="tagline">Botón de alerta para la comunidad</small></div>
+    <div class="langtoggle" role="group" aria-label="Language / Idioma">
+      <button id="langEs" class="active">ES</button><button id="langEn">EN</button>
+    </div>
+  </header>
+
+  <h1 data-i18n="title">Botón SOS</h1>
+  <p class="sub" data-i18n="subtitle">Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.</p>
+
+  <div class="sos-zone">
+    <button id="sosBtn" aria-label="SOS"><span class="fill" id="fill"></span>SOS<span class="holdlabel" data-i18n="hold">MANTÉN 3 SEG</span></button>
+    <div class="sos-hint" data-i18n="hint">Esto <b>no</b> llama al 911. Envía un mensaje de texto a <b>tus</b> contactos.</div>
+    <div id="status"></div>
+    <button class="btn btn-ghost btn-block" id="copyBtn" style="display:none" data-i18n="copyMsg">Copiar texto</button>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="setupTitle">1. Configura tus contactos</h2>
+    <p data-i18n="setupDesc">Agrega hasta 5 personas de confianza (familia, abogado, amigo). Se guardan <b>solo en tu teléfono</b> — nunca se envían a ningún servidor.</p>
+    <label for="yourName" data-i18n="yourName">Tu nombre</label>
+    <input type="text" id="yourName" data-i18n-ph="yourNamePh" placeholder="Ej. María López" autocomplete="off">
+    <label data-i18n="contacts">Contactos de confianza</label>
+    <div id="contacts"></div>
+    <button class="btn btn-ghost btn-block" id="addContact" data-i18n="addContact">+ Agregar contacto</button>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="msgTitle">2. Mensaje que se enviará</h2>
+    <p data-i18n="msgDesc">Así se verá el texto. Incluye tu ubicación automáticamente.</p>
+    <textarea class="msgedit" id="msgEdit"></textarea>
+    <button class="mini-link" id="resetMsg" data-i18n="resetMsg">Restablecer texto original</button>
+    <p data-i18n="msgVars">Se reemplaza solo: {name} = tu nombre · {loc} = tu ubicación · {time} = hora</p>
+    <div class="preview" id="preview"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="installTitle">3. Ponlo en tu pantalla principal</h2>
+    <p data-i18n="installNote"><b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.</p>
+    <ol class="steps">
+      <li data-i18n="step1"><b>iPhone:</b> toca Compartir → "Agregar a pantalla de inicio".</li>
+      <li data-i18n="step2"><b>Android:</b> toca el menú ⋮ → "Agregar a pantalla principal".</li>
+      <li data-i18n="step3"><b>Pruébalo una vez</b> con un familiar para confirmar que el mensaje llega.</li>
+    </ol>
+  </div>
+
+  <footer>
+    <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
+    <p data-i18n="legal">Borrador con fines de revisión — el texto del mensaje debe ser revisado por un abogado de inmigración antes de distribuirse. Esto no es asesoría legal.</p>
+  </footer>
+</div>
+
+<div id="toast"></div>
+<script>
+(function(){
+  "use strict";
+  var LS_NAME='cl_sos_name', LS_CONTACTS='cl_sos_contacts', LS_LANG='cl_sos_lang', LS_MSG='cl_sos_msg_';
+  // Safe storage: some in-app viewers block localStorage and throw. Fall back to memory so the page keeps working.
+  var memFallback = {};
+  var store = {
+    get: function(k, d){ try { var v = localStorage.getItem(k); if (v !== null) return v; } catch(e){} return (memFallback[k] !== undefined) ? memFallback[k] : d; },
+    set: function(k, v){ memFallback[k] = v; try { localStorage.setItem(k, v); } catch(e){} },
+    del: function(k){ delete memFallback[k]; try { localStorage.removeItem(k); } catch(e){} }
+  };
+
+  var STR = {
+    es: {
+      draft:"BORRADOR", tagline:"Botón de alerta para la comunidad", title:"Botón SOS",
+      subtitle:"Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.",
+      hold:"MANTÉN 3 SEG", hint:"Esto <b>no</b> llama al 911. Envía un mensaje de texto a <b>tus</b> contactos.",
+      setupTitle:"1. Configura tus contactos",
+      setupDesc:"Agrega hasta 5 personas de confianza (familia, abogado, amigo). Se guardan <b>solo en tu teléfono</b> — nunca se envían a ningún servidor.",
+      yourName:"Tu nombre", yourNamePh:"Ej. María López", contacts:"Contactos de confianza", addContact:"+ Agregar contacto",
+      namePh:"Nombre (ej. Abogado)", phonePh:"Teléfono",
+      msgTitle:"2. Mensaje que se enviará", msgDesc:"Así se verá el texto. Incluye tu ubicación automáticamente.",
+      installTitle:"3. Ponlo en tu pantalla principal",
+      step1:'<b>iPhone:</b> toca Compartir → "Agregar a pantalla de inicio".',
+      step2:'<b>Android:</b> toca el menú ⋮ → "Agregar a pantalla principal".',
+      step3:"<b>Pruébalo una vez</b> con un familiar para confirmar que el mensaje llega.",
+      privacy:"<b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.",
+      legal:"Borrador con fines de revisión — el texto del mensaje debe ser revisado por un abogado de inmigración antes de distribuirse. Esto no es asesoría legal.",
+      sending:"Localizando y abriendo tus mensajes…", opened:"Se abrió tu app de mensajes — presiona ENVIAR para alertar a tus contactos.",
+      noloc:"(ubicación no disponible)", noname:"Alguien",
+      sms:"SOS de {name}: Creo que fui detenido/a por agentes de inmigración. Mi ubicación aprox: {loc}. Hora: {time}. Por favor avisa a mi familia y a mi abogado. No voy a firmar nada y ejerceré mi derecho a guardar silencio.",
+      needContact:"Agrega al menos un contacto de confianza primero.",
+      resetMsg:"Restablecer texto original",
+      msgVars:"Se reemplaza solo: {name} = tu nombre · {loc} = tu ubicación · {time} = hora",
+      contactAdded:"✓ Contacto agregado",
+      copied:"✓ Texto copiado — pégalo en tus mensajes",
+      copyFail:"No se pudo copiar automáticamente",
+      copyMsg:"Copiar texto",
+      smsBlocked:"¿No se abrió Mensajes? Abre esta página en Safari o Chrome (la vista previa del chat no puede abrir otras apps) y agrégala a tu pantalla principal. O usa «Copiar texto» abajo.",
+      installNote:"<b>Importante:</b> abre esta página en Safari o Chrome — la vista previa del chat no puede abrir tu app de mensajes.",
+      pickFromPhone:"Elegir de mis contactos"
+    },
+    en: {
+      draft:"DRAFT", tagline:"Community alert button", title:"SOS Button",
+      subtitle:"If you believe you have been detained by immigration agents, press and hold the button. It will text your trusted contacts with your location.",
+      hold:"HOLD 3 SEC", hint:"This does <b>not</b> call 911. It texts <b>your</b> contacts.",
+      setupTitle:"1. Set up your contacts",
+      setupDesc:"Add up to 5 trusted people (family, attorney, friend). They are stored <b>only on your phone</b> — never sent to any server.",
+      yourName:"Your name", yourNamePh:"E.g. Maria Lopez", contacts:"Trusted contacts", addContact:"+ Add contact",
+      namePh:"Name (e.g. Attorney)", phonePh:"Phone",
+      msgTitle:"2. Message that will be sent", msgDesc:"This is what the text will look like. Your location is added automatically.",
+      installTitle:"3. Add it to your home screen",
+      step1:'<b>iPhone:</b> tap Share → "Add to Home Screen".',
+      step2:'<b>Android:</b> tap the ⋮ menu → "Add to Home screen".',
+      step3:"<b>Test it once</b> with a family member to confirm the message arrives.",
+      privacy:"<b>Privacy:</b> your contacts and name live only on this phone. Chingón Legacy never receives or stores this information.",
+      legal:"Draft for review — the message text should be reviewed by an immigration attorney before distribution. This is not legal advice.",
+      sending:"Getting location and opening your messages…", opened:"Your messaging app opened — press SEND to alert your contacts.",
+      noloc:"(location unavailable)", noname:"Someone",
+      sms:"SOS from {name}: I believe I have been detained by immigration agents. My approx location: {loc}. Time: {time}. Please notify my family and my attorney. I will not sign anything and I am exercising my right to remain silent.",
+      needContact:"Add at least one trusted contact first.",
+      resetMsg:"Restore original text",
+      msgVars:"Auto-replaced: {name} = your name · {loc} = your location · {time} = send time",
+      contactAdded:"✓ Contact added",
+      copied:"✓ Text copied — paste it into your messages",
+      copyFail:"Couldn't copy automatically",
+      copyMsg:"Copy text",
+      smsBlocked:"Messages didn't open? Open this page in Safari or Chrome (the chat preview can't open other apps) and add it to your home screen. Or use 'Copy text' below.",
+      installNote:"<b>Important:</b> open this page in Safari or Chrome — the chat preview can't open your messaging app.",
+      pickFromPhone:"Choose from my contacts"
+    }
+  };
+
+  var lang = store.get(LS_LANG, 'es');
+  function t(k){ return STR[lang][k] || k; }
+
+  function applyLang(){
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ el.innerHTML = t(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){ el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+    document.getElementById('langEs').classList.toggle('active', lang==='es');
+    document.getElementById('langEn').classList.toggle('active', lang==='en');
+    renderContacts(); loadTemplate();
+  }
+  document.getElementById('langEs').onclick = function(){ lang='es'; store.set(LS_LANG,lang); applyLang(); };
+  document.getElementById('langEn').onclick = function(){ lang='en'; store.set(LS_LANG,lang); applyLang(); };
+
+  // ---- contacts ----
+  function getContacts(){ try { return JSON.parse(store.get(LS_CONTACTS,'[]')); } catch(e){ return []; } }
+  function saveContacts(c){ store.set(LS_CONTACTS, JSON.stringify(c)); }
+
+  // Contact Picker API (Chrome Android): lets the user pull a person straight from the phone's address book.
+  // iOS Safari does not support it, so the button is hidden there and numbers are typed manually.
+  var canPickContacts = ('contacts' in navigator) && (window.isSecureContext !== false);
+  function pickContact(cs, i, nameInput, phoneInput){
+    navigator.contacts.select(['name','tel'], {multiple:false}).then(function(picked){
+      if (picked && picked.length){
+        var c0 = picked[0];
+        if (c0.name && c0.name.length) nameInput.value = c0.name[0];
+        if (c0.tel && c0.tel.length) phoneInput.value = c0.tel[0];
+        cs[i].name = nameInput.value; cs[i].phone = phoneInput.value;
+        saveContacts(cs); renderPreview();
+        toast(t('contactAdded'));
+      }
+    }).catch(function(){ /* user cancelled the picker */ });
+  }
+  var nameInput = document.getElementById('yourName');
+  nameInput.value = store.get(LS_NAME,'');
+  nameInput.addEventListener('input', function(){ store.set(LS_NAME, nameInput.value); renderPreview(); });
+
+  function renderContacts(){
+    var box = document.getElementById('contacts'); box.innerHTML='';
+    var cs = getContacts();
+    cs.forEach(function(c, i){
+      var row = document.createElement('div'); row.className='contact';
+      var n = document.createElement('input'); n.type='text'; n.placeholder=t('namePh'); n.value=c.name||'';
+      n.addEventListener('input', function(){ cs[i].name=n.value; saveContacts(cs); renderPreview(); });
+      var p = document.createElement('input'); p.type='tel'; p.placeholder=t('phonePh'); p.value=c.phone||''; p.inputMode='tel';
+      p.addEventListener('input', function(){ cs[i].phone=p.value; saveContacts(cs); });
+      var rm = document.createElement('button'); rm.className='rm'; rm.textContent='×'; rm.setAttribute('aria-label','Remove');
+      rm.onclick = function(){ cs.splice(i,1); saveContacts(cs); renderContacts(); };
+      row.appendChild(n); row.appendChild(p);
+      if (canPickContacts){
+        var pk = document.createElement('button'); pk.className='pk'; pk.textContent='📇'; pk.setAttribute('aria-label', t('pickFromPhone')); pk.title = t('pickFromPhone');
+        pk.onclick = function(){ pickContact(cs, i, n, p); };
+        row.appendChild(pk);
+      }
+      row.appendChild(rm); box.appendChild(row);
+    });
+  }
+  document.getElementById('addContact').onclick = function(){
+    var cs = getContacts();
+    if (cs.length >= 5){ return; }
+    cs.push({name:'', phone:''}); saveContacts(cs); renderContacts();
+    toast(t('contactAdded'));
+    var box=document.getElementById('contacts'), row=box.lastChild;
+    if (row){ row.scrollIntoView({block:'nearest', behavior:'smooth'}); var inp=row.querySelector('input'); if(inp) inp.focus({preventScroll:true}); }
+  };
+
+  function getTemplate(){ return store.get(LS_MSG+lang, null) || STR[lang].sms; }
+  function buildMessage(locStr){
+    var name = (store.get(LS_NAME,'')).trim() || t('noname');
+    var now = new Date();
+    var time = now.toLocaleString(lang==='es'?'es-US':'en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    return getTemplate().split('{name}').join(name).split('{loc}').join(locStr).split('{time}').join(time);
+  }
+  function renderPreview(){ document.getElementById('preview').textContent = buildMessage('https://maps.google.com/?q=39.7,-86.1'); }
+  var msgEdit=document.getElementById('msgEdit');
+  function loadTemplate(){ msgEdit.value = getTemplate(); renderPreview(); }
+  msgEdit.addEventListener('input', function(){ store.set(LS_MSG+lang, msgEdit.value); renderPreview(); });
+  document.getElementById('resetMsg').onclick = function(){ store.del(LS_MSG+lang); loadTemplate(); toast(t('resetMsg')); };
+
+  function setStatus(msg, cls){ var s=document.getElementById('status'); s.textContent=msg; s.className=cls||''; }
+  var toastTimer=null;
+  function toast(msg){ var el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); if(toastTimer) clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.remove('show'); },2200); }
+
+  var lastMessage='';
+  function sendSMS(message){
+    var cs = getContacts().map(function(c){ return (c.phone||'').replace(/[^\d+]/g,''); }).filter(Boolean);
+    if (!cs.length){ setStatus(t('needContact')); return; }
+    lastMessage = message;
+    document.getElementById('copyBtn').style.display='block';
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    var sep = isIOS ? '&' : '?';
+    var uri = 'sms:' + cs.join(',') + sep + 'body=' + encodeURIComponent(message);
+    // Anchor-click is the most compatible way to hand the message off to the SMS app
+    var a = document.createElement('a');
+    a.href = uri; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ if (a.parentNode) a.parentNode.removeChild(a); }, 1000);
+    setStatus(t('opened'), 'ok');
+    if (navigator.vibrate) navigator.vibrate([80,40,80]);
+    // If we're still here after a few seconds, the SMS app never took over
+    // (e.g. the page was opened inside a chat preview that blocks other apps)
+    setTimeout(function(){
+      if (document.visibilityState === 'visible') setStatus(t('smsBlocked'), 'working');
+    }, 2500);
+  }
+
+  document.getElementById('copyBtn').onclick = function(){
+    function done(ok){ toast(ok ? t('copied') : t('copyFail')); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(lastMessage).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      var ta=document.createElement('textarea'); ta.value=lastMessage; document.body.appendChild(ta); ta.select();
+      try { done(document.execCommand('copy')); } catch(e){ done(false); }
+      document.body.removeChild(ta);
+    }
+  };
+
+  function getLocation(cb){
+    if (!navigator.geolocation){ cb(null); return; }
+    var done=false;
+    var timer=setTimeout(function(){ if(!done){ done=true; cb(null); } }, 8000);
+    navigator.geolocation.getCurrentPosition(function(pos){
+      if(done) return; done=true; clearTimeout(timer);
+      cb('https://maps.google.com/?q='+pos.coords.latitude.toFixed(5)+','+pos.coords.longitude.toFixed(5));
+    }, function(){ if(!done){ done=true; clearTimeout(timer); cb(null); } },
+    {enableHighAccuracy:true, timeout:7000, maximumAge:60000});
+  }
+
+  // ---- hold to activate ----
+  var btn=document.getElementById('sosBtn'), fill=document.getElementById('fill');
+  var HOLD_MS=3000, raf=null, startT=0;
+  function tick(){
+    var p=Math.min(1,(Date.now()-startT)/HOLD_MS);
+    fill.style.transform='scale('+p+')';
+    if (p>=1){ cancelHold(); activate(); return; }
+    raf=requestAnimationFrame(tick);
+  }
+  function cancelHold(){ if(raf) cancelAnimationFrame(raf); raf=null; fill.style.transform='scale(0)'; }
+  btn.addEventListener('pointerdown', function(e){ e.preventDefault(); startT=Date.now(); tick(); });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev, cancelHold); });
+  btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+  function activate(){
+    setStatus(t('sending'), 'working');
+    if (navigator.vibrate) navigator.vibrate(120);
+    getLocation(function(loc){
+      sendSMS(buildMessage(loc || t('noloc')));
+    });
+  }
+
+  applyLang();
+})();
+</script>
+</body>
+</html>
