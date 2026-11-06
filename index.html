@@ -81,6 +81,7 @@
   <a class="donatebtn" href="https://www.paypal.com/donate?hosted_button_id=E7Y3X9D6Y6SK6" target="_blank" rel="noopener" data-i18n="donateBtn">❤ Donar a Chingón Legacy</a>
 
   <div id="storageWarn" class="warn" style="display:none"><b data-i18n="warnTitle">Tus datos no se pueden guardar en este navegador</b><span data-i18n="warnBody"></span></div>
+  <div id="httpsWarn" class="warn" style="display:none"><b data-i18n="locWarnTitle">La ubicación no puede funcionar en esta copia</b><span data-i18n="locWarnBody"></span></div>
   <h1 data-i18n="title">Botón SOS</h1>
   <p class="sub" data-i18n="subtitle">Si crees que fuiste detenido/a por agentes de inmigración, mantén presionado el botón. Les enviará un mensaje de texto a tus contactos de confianza con tu ubicación.</p>
   <p class="builtby" data-i18n="builtBy">Hecho con ❤ por <b>Chingón Legacy</b> para nuestra comunidad.</p>
@@ -129,7 +130,7 @@
   <footer>
     <p data-i18n="privacy"><b>Privacidad:</b> tus contactos y tu nombre viven solo en este teléfono. Chingón Legacy no recibe ni guarda esta información.</p>
     <p data-i18n="legal">El contenido de esta página no es asesoría legal. Si tienes preguntas sobre tus derechos, consulta a un abogado de inmigración.</p>
-    <p class="ver">v14 · Botón SOS · Chingón Legacy</p>
+    <p class="ver">v15 · Botón SOS · Chingón Legacy</p>
   </footer>
 </div>
 
@@ -181,6 +182,8 @@
       pickFromPhone:"Elegir de mis contactos",
       warnTitle:"Tus datos no se pueden guardar en este navegador",
       warnBody:"Usa el modo normal (no privado) de Safari, o revisa Ajustes → Safari → 'Bloquear todas las cookies' (debe estar apagado). Sin esto, tus contactos se borrarán al cerrar la página.",
+      locWarnTitle:"La ubicación no puede funcionar en esta copia",
+      locWarnBody:"El GPS solo funciona en la dirección segura del Botón SOS. Abre https://sos.chingonlegacy.org en tu navegador y vuelve a agregarla a tu pantalla principal desde ahí; si no, tus mensajes saldrán sin ubicación.",
       savedPill:"✓ Guardado en este teléfono",
       saveNote:"Tus datos se guardan automáticamente en este teléfono, en este navegador. Evita el modo privado.",
       donateBtn:"❤ Donar a Chingón Legacy",
@@ -224,6 +227,8 @@
       pickFromPhone:"Choose from my contacts",
       warnTitle:"Your data can't be saved in this browser",
       warnBody:"Use Safari's normal (not private) browsing, or check Settings → Safari → 'Block All Cookies' (must be off). Otherwise your contacts will be erased when you close the page.",
+      locWarnTitle:"Location can't work on this copy",
+      locWarnBody:"GPS only works at the SOS button's secure address. Open https://sos.chingonlegacy.org in your browser and add it to your home screen again from there; otherwise your messages will go out without your location.",
       savedPill:"✓ Saved on this phone",
       saveNote:"Your data saves automatically on this phone, in this browser. Avoid private browsing.",
       donateBtn:"❤ Donate to Chingón Legacy",
@@ -439,15 +444,29 @@
     }
   };
 
+  // Location cache (v15): warm the GPS up when the page loads and again when
+  // the button is touched, so an SOS rarely waits on a cold first fix — the
+  // old code only asked at press time and timed out after 7s, which is how
+  // alerts went out with "(ubicación no disponible)".
+  var cachedLoc=null, cachedLocAt=0;
+  function locUrl(pos){ return 'https://maps.google.com/?q='+pos.coords.latitude.toFixed(5)+','+pos.coords.longitude.toFixed(5); }
+  function warmLocation(){
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function(pos){
+      cachedLoc=locUrl(pos); cachedLocAt=Date.now();
+    }, function(){}, {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+  }
   function getLocation(cb){
-    if (!navigator.geolocation){ cb(null); return; }
+    if (cachedLoc && (Date.now()-cachedLocAt)<120000){ cb(cachedLoc); return; }
+    if (!navigator.geolocation){ cb(cachedLoc); return; }
     var done=false;
-    var timer=setTimeout(function(){ if(!done){ done=true; cb(null); } }, 8000);
+    var timer=setTimeout(function(){ if(!done){ done=true; cb(cachedLoc); } }, 10000);
     navigator.geolocation.getCurrentPosition(function(pos){
       if(done) return; done=true; clearTimeout(timer);
-      cb('https://maps.google.com/?q='+pos.coords.latitude.toFixed(5)+','+pos.coords.longitude.toFixed(5));
-    }, function(){ if(!done){ done=true; clearTimeout(timer); cb(null); } },
-    {enableHighAccuracy:true, timeout:7000, maximumAge:60000});
+      cachedLoc=locUrl(pos); cachedLocAt=Date.now();
+      cb(cachedLoc);
+    }, function(){ if(!done){ done=true; clearTimeout(timer); cb(cachedLoc); } },
+    {enableHighAccuracy:true, timeout:9000, maximumAge:30000});
   }
 
   // ---- hold to activate ----
@@ -460,7 +479,7 @@
     raf=requestAnimationFrame(tick);
   }
   function cancelHold(){ if(raf) cancelAnimationFrame(raf); raf=null; fill.style.transform='scale(0)'; }
-  btn.addEventListener('pointerdown', function(e){ e.preventDefault(); startT=Date.now(); tick(); });
+  btn.addEventListener('pointerdown', function(e){ e.preventDefault(); warmLocation(); startT=Date.now(); tick(); });
   ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ btn.addEventListener(ev, cancelHold); });
   btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 
@@ -477,6 +496,10 @@
 
   applyLang();
   if (!storageOK){ document.getElementById('storageWarn').style.display='block'; }
+  // GPS is only exposed on secure (https) pages; on an insecure copy, say so
+  // up front instead of letting alerts silently go out without a location.
+  if (!window.isSecureContext){ document.getElementById('httpsWarn').style.display='block'; }
+  warmLocation();
 })();
 </script>
 </body>
